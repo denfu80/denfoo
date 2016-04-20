@@ -1,0 +1,99 @@
+package com.signavio.droolsexport._954d52e44b1f4225a24118fee094904e._2 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import com.signavio.dmn.formulae.DmnHierarchyFormulae
+import java.text.DecimalFormat
+import com.signavio.dmn.formulae.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Input 
+    input : String  
+end
+
+declare  MyTaskWithDecsision_Output 
+    myTaskWithDecsision : BigDecimal  
+end
+
+rule "initialize_version_info"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "954d52e44b1f4225a24118fee094904e");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 2);
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "myTaskWithDecsision_rule_1"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    MyTaskWithDecsision_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getInput(), "a")) ) 
+then
+	MyTaskWithDecsision_Output $myTaskWithDecsision_Output = new MyTaskWithDecsision_Output();
+	$myTaskWithDecsision_Output.setMyTaskWithDecsision(BigDecimal.valueOf(1.0));
+	insert($myTaskWithDecsision_Output);
+end
+
+rule "myTaskWithDecsision_rule_2"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    MyTaskWithDecsision_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getInput(), "b")) ) 
+then
+	MyTaskWithDecsision_Output $myTaskWithDecsision_Output = new MyTaskWithDecsision_Output();
+	$myTaskWithDecsision_Output.setMyTaskWithDecsision(BigDecimal.valueOf(2.0));
+	insert($myTaskWithDecsision_Output);
+end
+
+rule "myTaskWithDecsision_emptyResultFallBack"
+    no-loop 
+    //decision:  myTaskWithDecsision
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    MyTaskWithDecsision_Output(  )   ) 
+    $input : Input(  )  
+then
+	MyTaskWithDecsision_Output $myTaskWithDecsision_Output = new MyTaskWithDecsision_Output();
+	$myTaskWithDecsision_Output.setMyTaskWithDecsision(null);
+	insert($myTaskWithDecsision_Output);
+end
