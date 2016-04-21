@@ -1,0 +1,158 @@
+package com.signavio.droolsexport._a5acfdba11c54b3f98fd0a006b514f47._4 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import com.signavio.dmn.formulae.DmnHierarchyFormulae
+import java.text.DecimalFormat
+import com.signavio.dmn.formulae.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Input 
+    in1 : String  
+    in3 : String  
+    in2 : String  
+end
+
+declare  ASubtable_Output 
+    aSubtable : Boolean  
+end
+
+declare  ATable_Output 
+    aTable : BigDecimal  
+end
+
+rule "initialize_version_info"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "a5acfdba11c54b3f98fd0a006b514f47");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 4);
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "aSubtable_rule_1"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ASubtable_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getIn1(), "a")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getIn2(), "b")) ) 
+then
+	ASubtable_Output $aSubtable_Output = new ASubtable_Output();
+	$aSubtable_Output.setASubtable(true);
+	insert($aSubtable_Output);
+end
+
+rule "aSubtable_rule_2"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ASubtable_Output(  )   ) 
+    $input : Input(  )  
+then
+	ASubtable_Output $aSubtable_Output = new ASubtable_Output();
+	$aSubtable_Output.setASubtable(false);
+	insert($aSubtable_Output);
+end
+
+rule "aSubtable_emptyResultFallBack"
+    no-loop 
+    //decision:  aSubtable
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ASubtable_Output(  )   ) 
+    $input : Input(  )  
+then
+	ASubtable_Output $aSubtable_Output = new ASubtable_Output();
+	$aSubtable_Output.setASubtable(null);
+	insert($aSubtable_Output);
+end
+
+rule "aTable_rule_1"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ATable_Output(  )   ) 
+    $input : Input(  )  
+    $aSubtable_Output : ASubtable_Output(  )  
+    eval( $F.nullSafeEval($F.equals($aSubtable_Output.getASubtable(), true)) ) 
+    eval( $F.nullSafeEval($F.equals($input.getIn3(), "a")) ) 
+then
+	ATable_Output $aTable_Output = new ATable_Output();
+	$aTable_Output.setATable(BigDecimal.valueOf(1.0));
+	insert($aTable_Output);
+end
+
+rule "aTable_rule_2"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ATable_Output(  )   ) 
+    $input : Input(  )  
+    $aSubtable_Output : ASubtable_Output(  )  
+    eval( $F.nullSafeEval($F.equals($aSubtable_Output.getASubtable(), false)) ) 
+    eval( $F.nullSafeEval($F.equals($input.getIn3(), "b")) ) 
+then
+	ATable_Output $aTable_Output = new ATable_Output();
+	$aTable_Output.setATable(BigDecimal.valueOf(2.0));
+	insert($aTable_Output);
+end
+
+rule "aTable_emptyResultFallBack"
+    no-loop 
+    //decision:  aTable
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ATable_Output(  )   ) 
+    $input : Input(  )  
+    $aSubtable_Output : ASubtable_Output(  )  
+then
+	ATable_Output $aTable_Output = new ATable_Output();
+	$aTable_Output.setATable(null);
+	insert($aTable_Output);
+end
