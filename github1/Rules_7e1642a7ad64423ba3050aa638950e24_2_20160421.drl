@@ -1,0 +1,99 @@
+package com.signavio.droolsexport._7e1642a7ad64423ba3050aa638950e24._2 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import com.signavio.dmn.formulae.DmnHierarchyFormulae
+import java.text.DecimalFormat
+import com.signavio.dmn.formulae.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Input 
+    aInput : String  
+end
+
+declare  ADecision_Output 
+    aDecision : BigDecimal  
+end
+
+rule "initialize_version_info"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "7e1642a7ad64423ba3050aa638950e24");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 2);
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "aDecision_rule_1"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ADecision_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAInput(), "a")) ) 
+then
+	ADecision_Output $aDecision_Output = new ADecision_Output();
+	$aDecision_Output.setADecision(BigDecimal.valueOf(1.0));
+	insert($aDecision_Output);
+end
+
+rule "aDecision_rule_2"
+    no-loop 
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ADecision_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAInput(), "b")) ) 
+then
+	ADecision_Output $aDecision_Output = new ADecision_Output();
+	$aDecision_Output.setADecision(BigDecimal.valueOf(2.0));
+	insert($aDecision_Output);
+end
+
+rule "aDecision_emptyResultFallBack"
+    no-loop 
+    //decision:  aDecision
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    ADecision_Output(  )   ) 
+    $input : Input(  )  
+then
+	ADecision_Output $aDecision_Output = new ADecision_Output();
+	$aDecision_Output.setADecision(null);
+	insert($aDecision_Output);
+end
