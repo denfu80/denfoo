@@ -1,0 +1,123 @@
+package com.signavio.droolsexport._e45cbf1fc1064d028fea792f9623579e._3 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v2.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Input 
+    inOne : String  
+end
+
+declare  Dmn1_Output 
+    dmn1 : String  
+end
+
+declare  AnnotationItem 
+    decision : String  
+    annotationName : String  
+    ruleName : String  
+    category : AnnotationCategory  
+    message : String  
+    timestamp : OffsetDateTime  
+end
+
+declare enum AnnotationCategory
+	INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "e45cbf1fc1064d028fea792f9623579e");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 3);
+end
+
+rule "initialize_annotations_list"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    salience 1000
+when
+then
+	drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    salience 999
+when
+    $input : Input(  )  
+then
+	$logger.info($input.toString());
+end
+
+rule "dmn1_rule_1"
+    no-loop true
+    //decision:  dmn1
+    salience 1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Dmn1_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getInOne(), "a")) ) 
+then
+	Dmn1_Output $dmn1_Output = new Dmn1_Output();
+	$dmn1_Output.setDmn1("b");
+	insert($dmn1_Output);
+end
+
+rule "dmn1_emptyResultFallBack"
+    no-loop true
+    //decision:  dmn1
+    salience -1
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Dmn1_Output(  )   ) 
+    $input : Input(  )  
+then
+	Dmn1_Output $dmn1_Output = new Dmn1_Output();
+	$dmn1_Output.setDmn1(null);
+	insert($dmn1_Output);
+end
