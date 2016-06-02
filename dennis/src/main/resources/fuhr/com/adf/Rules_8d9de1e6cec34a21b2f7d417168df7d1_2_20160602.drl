@@ -1,0 +1,130 @@
+package null.neuesentscheidungsdiagramm 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v2.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Input 
+    b : String  
+end
+
+declare  A_Output 
+    a : String  
+end
+
+declare  AnnotationItem 
+    decision : String  
+    annotationName : String  
+    ruleName : String  
+    category : AnnotationCategory  
+    message : String  
+    timestamp : OffsetDateTime  
+end
+
+declare enum AnnotationCategory
+	INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "8d9de1e6cec34a21b2f7d417168df7d1");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 2);
+end
+
+rule "initialize_annotations_list"
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    salience 999
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $input : Input(  )  
+then
+	$logger.info($input.toString());
+end
+
+rule "a_rule_1"
+    no-loop true
+    //decision:  a
+    salience 1
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    A_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getB(), "a")) ) 
+then
+	A_Output $a_Output = new A_Output();
+	$a_Output.setA("b");
+	insert($a_Output);
+end
+
+rule "a_emptyResultFallBack"
+    no-loop true
+    //decision:  a
+    salience -1
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    A_Output(  )   ) 
+    $input : Input(  )  
+then
+	A_Output $a_Output = new A_Output();
+	$a_Output.setA(null);
+	insert($a_Output);
+end
