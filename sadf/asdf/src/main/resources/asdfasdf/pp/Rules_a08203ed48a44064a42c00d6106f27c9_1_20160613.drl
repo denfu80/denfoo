@@ -1,0 +1,762 @@
+package null.calculateannualpremium 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v2.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Input 
+    gender : String  
+    rollbarExisiting : Boolean  
+    driversAge : BigDecimal  
+    location : String  
+    convertibleCar : Boolean  
+    relationshipStatus : String  
+    typeOfCar : String  
+    modelYearOfTheCar : LocalDate  
+    airbagEquipment : String  
+end
+
+declare  DriverAgeCategory_Output 
+    driverAgeCategory : String  
+end
+
+declare  CalculateDriverPremium_Output 
+    calculateDriverPremium : BigDecimal  
+end
+
+declare  CalculatePremiumForInjuryPotential_Output 
+    calculatePremiumForInjuryPotential : BigDecimal  
+end
+
+declare  AutoDiscounts_Output 
+    autoDiscounts : BigDecimal  
+end
+
+declare  CalculatePremiumForCarModel_Rule_Output 
+    calculatePremiumForCarModel : BigDecimal  
+end
+
+declare  CalculatePremiumForCarModel_Output 
+    calculatePremiumForCarModel : BigDecimal  
+end
+
+declare  CalculateCarPremium_Output 
+    carPremiumFull : BigDecimal  
+    carPremiumAfterDiscount : BigDecimal  
+end
+
+declare  CalculateAnnualPremium_Output 
+    annualPremium : BigDecimal  
+    premiumPerMonth : BigDecimal  
+end
+
+declare  AnnotationItem 
+    decision : String  
+    annotationName : String  
+    ruleName : String  
+    category : AnnotationCategory  
+    message : String  
+    timestamp : OffsetDateTime  
+end
+
+declare enum AnnotationCategory
+	INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    salience 1000
+    ruleflow-group 'calculateannualpremium'
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "a08203ed48a44064a42c00d6106f27c9");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 1);
+end
+
+rule "initialize_annotations_list"
+    salience 1000
+    ruleflow-group 'calculateannualpremium'
+when
+then
+	drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+    ruleflow-group 'calculateannualpremium'
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    salience 1000
+    ruleflow-group 'calculateannualpremium'
+when
+then
+	drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    salience 999
+    ruleflow-group 'calculateannualpremium'
+when
+    $input : Input(  )  
+then
+	$logger.info($input.toString());
+end
+
+rule "driverAgeCategory_rule_1"
+    no-loop true
+    //decision:  driverAgeCategory
+    salience 4
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    DriverAgeCategory_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getGender(), "male")) ) 
+    eval( $F.nullSafeEval(($F.lessThan($input.getDriversAge(), BigDecimal.valueOf(25.0)))) ) 
+then
+	DriverAgeCategory_Output $driverAgeCategory_Output = new DriverAgeCategory_Output();
+	$driverAgeCategory_Output.setDriverAgeCategory("young driver");
+	insert($driverAgeCategory_Output);
+end
+
+rule "driverAgeCategory_rule_2"
+    no-loop true
+    //decision:  driverAgeCategory
+    salience 3
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    DriverAgeCategory_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getGender(), "female")) ) 
+    eval( $F.nullSafeEval(($F.lessThan($input.getDriversAge(), BigDecimal.valueOf(20.0)))) ) 
+then
+	DriverAgeCategory_Output $driverAgeCategory_Output = new DriverAgeCategory_Output();
+	$driverAgeCategory_Output.setDriverAgeCategory("young driver");
+	insert($driverAgeCategory_Output);
+end
+
+rule "driverAgeCategory_rule_3"
+    no-loop true
+    //decision:  driverAgeCategory
+    salience 2
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    DriverAgeCategory_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval(($F.greaterThan($input.getDriversAge(), BigDecimal.valueOf(70.0)))) ) 
+then
+	DriverAgeCategory_Output $driverAgeCategory_Output = new DriverAgeCategory_Output();
+	$driverAgeCategory_Output.setDriverAgeCategory("senior driver");
+	insert($driverAgeCategory_Output);
+end
+
+rule "driverAgeCategory_rule_4"
+    no-loop true
+    //decision:  driverAgeCategory
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    DriverAgeCategory_Output(  )   ) 
+    $input : Input(  )  
+then
+	DriverAgeCategory_Output $driverAgeCategory_Output = new DriverAgeCategory_Output();
+	$driverAgeCategory_Output.setDriverAgeCategory("typically driver");
+	insert($driverAgeCategory_Output);
+end
+
+rule "driverAgeCategory_emptyResultFallBack"
+    no-loop true
+    //decision:  driverAgeCategory
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    DriverAgeCategory_Output(  )   ) 
+    $input : Input(  )  
+then
+	DriverAgeCategory_Output $driverAgeCategory_Output = new DriverAgeCategory_Output();
+	$driverAgeCategory_Output.setDriverAgeCategory(null);
+	insert($driverAgeCategory_Output);
+end
+
+rule "calculateDriverPremium_rule_1"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience 6
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+    eval( $F.nullSafeEval($F.equals($driverAgeCategory_Output.getDriverAgeCategory(), "young driver")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getRelationshipStatus(), "single")) ) 
+    eval( $F.nullSafeEval($F.anyTrue(Arrays.asList( new Object[] {$F.equals($input.getLocation(), "CA"), $F.equals($input.getLocation(), "NY"), $F.equals($input.getLocation(), "VA")}))) ) 
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(BigDecimal.valueOf(720.0));
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculateDriverPremium_rule_2"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience 5
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+    eval( $F.nullSafeEval($F.equals($driverAgeCategory_Output.getDriverAgeCategory(), "young driver")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getRelationshipStatus(), "married")) ) 
+    eval( $F.nullSafeEval($F.anyTrue(Arrays.asList( new Object[] {$F.equals($input.getLocation(), "CA"), $F.equals($input.getLocation(), "NY"), $F.equals($input.getLocation(), "VA")}))) ) 
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(BigDecimal.valueOf(700.0));
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculateDriverPremium_rule_3"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience 4
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+    eval( $F.nullSafeEval($F.equals($driverAgeCategory_Output.getDriverAgeCategory(), "young driver")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getLocation(), "other")) ) 
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(BigDecimal.valueOf(300.0));
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculateDriverPremium_rule_4"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience 3
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+    eval( $F.nullSafeEval($F.equals($driverAgeCategory_Output.getDriverAgeCategory(), "senior driver")) ) 
+    eval( $F.nullSafeEval($F.anyTrue(Arrays.asList( new Object[] {$F.equals($input.getLocation(), "CA"), $F.equals($input.getLocation(), "NY"), $F.equals($input.getLocation(), "VA")}))) ) 
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(BigDecimal.valueOf(500.0));
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculateDriverPremium_rule_5"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience 2
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+    eval( $F.nullSafeEval($F.equals($driverAgeCategory_Output.getDriverAgeCategory(), "senior driver")) ) 
+    eval( $F.nullSafeEval($F.equals($input.getLocation(), "other")) ) 
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(BigDecimal.valueOf(200.0));
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculateDriverPremium_rule_6"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+    eval( $F.nullSafeEval($F.equals($driverAgeCategory_Output.getDriverAgeCategory(), "typically driver")) ) 
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(BigDecimal.valueOf(0.0));
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculateDriverPremium_emptyResultFallBack"
+    no-loop true
+    //decision:  calculateDriverPremium
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateDriverPremium_Output(  )   ) 
+    $input : Input(  )  
+    $driverAgeCategory_Output : DriverAgeCategory_Output(  )  
+then
+	CalculateDriverPremium_Output $calculateDriverPremium_Output = new CalculateDriverPremium_Output();
+	$calculateDriverPremium_Output.setCalculateDriverPremium(null);
+	insert($calculateDriverPremium_Output);
+end
+
+rule "calculatePremiumForInjuryPotential_rule_1"
+    no-loop true
+    //decision:  calculatePremiumForInjuryPotential
+    salience 5
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForInjuryPotential_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getConvertibleCar(), true)) ) 
+    eval( $F.nullSafeEval($F.equals($input.getRollbarExisiting(), false)) ) 
+then
+	CalculatePremiumForInjuryPotential_Output $calculatePremiumForInjuryPotential_Output = new CalculatePremiumForInjuryPotential_Output();
+	$calculatePremiumForInjuryPotential_Output.setCalculatePremiumForInjuryPotential(BigDecimal.valueOf(1000.0));
+	insert($calculatePremiumForInjuryPotential_Output);
+end
+
+rule "calculatePremiumForInjuryPotential_rule_2"
+    no-loop true
+    //decision:  calculatePremiumForInjuryPotential
+    salience 4
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForInjuryPotential_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "no airbags")) ) 
+then
+	CalculatePremiumForInjuryPotential_Output $calculatePremiumForInjuryPotential_Output = new CalculatePremiumForInjuryPotential_Output();
+	$calculatePremiumForInjuryPotential_Output.setCalculatePremiumForInjuryPotential(BigDecimal.valueOf(1000.0));
+	insert($calculatePremiumForInjuryPotential_Output);
+end
+
+rule "calculatePremiumForInjuryPotential_rule_3"
+    no-loop true
+    //decision:  calculatePremiumForInjuryPotential
+    salience 3
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForInjuryPotential_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "drivers airbag")) ) 
+then
+	CalculatePremiumForInjuryPotential_Output $calculatePremiumForInjuryPotential_Output = new CalculatePremiumForInjuryPotential_Output();
+	$calculatePremiumForInjuryPotential_Output.setCalculatePremiumForInjuryPotential(BigDecimal.valueOf(500.0));
+	insert($calculatePremiumForInjuryPotential_Output);
+end
+
+rule "calculatePremiumForInjuryPotential_rule_4"
+    no-loop true
+    //decision:  calculatePremiumForInjuryPotential
+    salience 2
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForInjuryPotential_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "drivers+front passenger airbag")) ) 
+then
+	CalculatePremiumForInjuryPotential_Output $calculatePremiumForInjuryPotential_Output = new CalculatePremiumForInjuryPotential_Output();
+	$calculatePremiumForInjuryPotential_Output.setCalculatePremiumForInjuryPotential(BigDecimal.valueOf(200.0));
+	insert($calculatePremiumForInjuryPotential_Output);
+end
+
+rule "calculatePremiumForInjuryPotential_rule_5"
+    no-loop true
+    //decision:  calculatePremiumForInjuryPotential
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForInjuryPotential_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "front complete + side panel airbags")) ) 
+then
+	CalculatePremiumForInjuryPotential_Output $calculatePremiumForInjuryPotential_Output = new CalculatePremiumForInjuryPotential_Output();
+	$calculatePremiumForInjuryPotential_Output.setCalculatePremiumForInjuryPotential(BigDecimal.valueOf(0.0));
+	insert($calculatePremiumForInjuryPotential_Output);
+end
+
+rule "calculatePremiumForInjuryPotential_emptyResultFallBack"
+    no-loop true
+    //decision:  calculatePremiumForInjuryPotential
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForInjuryPotential_Output(  )   ) 
+    $input : Input(  )  
+then
+	CalculatePremiumForInjuryPotential_Output $calculatePremiumForInjuryPotential_Output = new CalculatePremiumForInjuryPotential_Output();
+	$calculatePremiumForInjuryPotential_Output.setCalculatePremiumForInjuryPotential(null);
+	insert($calculatePremiumForInjuryPotential_Output);
+end
+
+rule "autoDiscounts_rule_1"
+    no-loop true
+    //decision:  autoDiscounts
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    AutoDiscounts_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "drivers airbag")) ) 
+then
+	AutoDiscounts_Output $autoDiscounts_Output = new AutoDiscounts_Output();
+	$autoDiscounts_Output.setAutoDiscounts(BigDecimal.valueOf(0.12));
+	insert($autoDiscounts_Output);
+end
+
+rule "autoDiscounts_rule_2"
+    no-loop true
+    //decision:  autoDiscounts
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    AutoDiscounts_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "drivers+front passenger airbag")) ) 
+then
+	AutoDiscounts_Output $autoDiscounts_Output = new AutoDiscounts_Output();
+	$autoDiscounts_Output.setAutoDiscounts(BigDecimal.valueOf(0.15));
+	insert($autoDiscounts_Output);
+end
+
+rule "autoDiscounts_rule_3"
+    no-loop true
+    //decision:  autoDiscounts
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    AutoDiscounts_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAirbagEquipment(), "front complete + side panel airbags")) ) 
+then
+	AutoDiscounts_Output $autoDiscounts_Output = new AutoDiscounts_Output();
+	$autoDiscounts_Output.setAutoDiscounts(BigDecimal.valueOf(0.18));
+	insert($autoDiscounts_Output);
+end
+
+rule "autoDiscounts_emptyResultFallBack"
+    no-loop true
+    //decision:  autoDiscounts
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    AutoDiscounts_Output(  )   ) 
+    $input : Input(  )  
+then
+	AutoDiscounts_Output $autoDiscounts_Output = new AutoDiscounts_Output();
+	$autoDiscounts_Output.setAutoDiscounts(null);
+	insert($autoDiscounts_Output);
+end
+
+rule "calculatePremiumForCarModel_rule_1"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval(($F.greaterThanOrEqualTo($F.yearDiff($F.now(), $input.getModelYearOfTheCar()), BigDecimal.valueOf(0.0)))) ) 
+then
+	CalculatePremiumForCarModel_Rule_Output $calculatePremiumForCarModel_Rule_Output = new CalculatePremiumForCarModel_Rule_Output();
+	$calculatePremiumForCarModel_Rule_Output.setCalculatePremiumForCarModel(BigDecimal.valueOf(500.0));
+	insert($calculatePremiumForCarModel_Rule_Output);
+end
+
+rule "calculatePremiumForCarModel_rule_2"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.and($F.lessThanOrEqualTo(BigDecimal.valueOf(0.0), $F.yearDiff($F.now(), $input.getModelYearOfTheCar())), $F.lessThanOrEqualTo($F.yearDiff($F.now(), $input.getModelYearOfTheCar()), BigDecimal.valueOf(-5.0)))) ) 
+then
+	CalculatePremiumForCarModel_Rule_Output $calculatePremiumForCarModel_Rule_Output = new CalculatePremiumForCarModel_Rule_Output();
+	$calculatePremiumForCarModel_Rule_Output.setCalculatePremiumForCarModel(BigDecimal.valueOf(300.0));
+	insert($calculatePremiumForCarModel_Rule_Output);
+end
+
+rule "calculatePremiumForCarModel_rule_3"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.and($F.lessThanOrEqualTo(BigDecimal.valueOf(-10.0), $F.yearDiff($F.now(), $input.getModelYearOfTheCar())), $F.lessThanOrEqualTo($F.yearDiff($F.now(), $input.getModelYearOfTheCar()), BigDecimal.valueOf(-5.0)))) ) 
+then
+	CalculatePremiumForCarModel_Rule_Output $calculatePremiumForCarModel_Rule_Output = new CalculatePremiumForCarModel_Rule_Output();
+	$calculatePremiumForCarModel_Rule_Output.setCalculatePremiumForCarModel(BigDecimal.valueOf(250.0));
+	insert($calculatePremiumForCarModel_Rule_Output);
+end
+
+rule "calculatePremiumForCarModel_rule_4"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval(($F.greaterThan($F.yearDiff($F.now(), $input.getModelYearOfTheCar()), BigDecimal.valueOf(-10.0)))) ) 
+then
+	CalculatePremiumForCarModel_Rule_Output $calculatePremiumForCarModel_Rule_Output = new CalculatePremiumForCarModel_Rule_Output();
+	$calculatePremiumForCarModel_Rule_Output.setCalculatePremiumForCarModel(BigDecimal.valueOf(0.0));
+	insert($calculatePremiumForCarModel_Rule_Output);
+end
+
+rule "calculatePremiumForCarModel_rule_5"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getTypeOfCar(), "compact car")) ) 
+then
+	CalculatePremiumForCarModel_Rule_Output $calculatePremiumForCarModel_Rule_Output = new CalculatePremiumForCarModel_Rule_Output();
+	$calculatePremiumForCarModel_Rule_Output.setCalculatePremiumForCarModel(BigDecimal.valueOf(300.0));
+	insert($calculatePremiumForCarModel_Rule_Output);
+end
+
+rule "calculatePremiumForCarModel_rule_6"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getTypeOfCar(), "sedan")) ) 
+then
+	CalculatePremiumForCarModel_Rule_Output $calculatePremiumForCarModel_Rule_Output = new CalculatePremiumForCarModel_Rule_Output();
+	$calculatePremiumForCarModel_Rule_Output.setCalculatePremiumForCarModel(BigDecimal.valueOf(400.0));
+	insert($calculatePremiumForCarModel_Rule_Output);
+end
+
+rule "calculatePremiumForCarModel_aggregation"
+    no-loop true
+    //decision:  calculatePremiumForCarModel
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculatePremiumForCarModel_Output(  )   ) 
+    $input : Input(  )  
+    $all_calculatePremiumForCarModel : List(  ) from accumulate(     
+    CalculatePremiumForCarModel_Rule_Output( $each : calculatePremiumForCarModel )  ,
+        collectList( $each ) )
+ 
+then
+	CalculatePremiumForCarModel_Output $calculatePremiumForCarModel_Output = new CalculatePremiumForCarModel_Output();
+	$calculatePremiumForCarModel_Output.setCalculatePremiumForCarModel($F.sum($all_calculatePremiumForCarModel));
+	insert($calculatePremiumForCarModel_Output);
+end
+
+rule "calculateCarPremium_rule_1"
+    no-loop true
+    //decision:  calculateCarPremium
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateCarPremium_Output(  )   ) 
+    $input : Input(  )  
+    $calculatePremiumForInjuryPotential_Output : CalculatePremiumForInjuryPotential_Output(  )  
+    $autoDiscounts_Output : AutoDiscounts_Output(  )  
+    $calculatePremiumForCarModel_Output : CalculatePremiumForCarModel_Output(  )  
+then
+	CalculateCarPremium_Output $calculateCarPremium_Output = new CalculateCarPremium_Output();
+	$calculateCarPremium_Output.setCarPremiumFull(($F.plus($calculatePremiumForCarModel_Output.getCalculatePremiumForCarModel(), $calculatePremiumForInjuryPotential_Output.getCalculatePremiumForInjuryPotential())));
+	$calculateCarPremium_Output.setCarPremiumAfterDiscount(($F.minus(($F.plus($calculatePremiumForCarModel_Output.getCalculatePremiumForCarModel(), $calculatePremiumForInjuryPotential_Output.getCalculatePremiumForInjuryPotential())), ($F.multiply(($F.plus($calculatePremiumForCarModel_Output.getCalculatePremiumForCarModel(), $calculatePremiumForInjuryPotential_Output.getCalculatePremiumForInjuryPotential())), $autoDiscounts_Output.getAutoDiscounts())))));
+	insert($calculateCarPremium_Output);
+end
+
+rule "calculateCarPremium_emptyResultFallBack"
+    no-loop true
+    //decision:  calculateCarPremium
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateCarPremium_Output(  )   ) 
+    $input : Input(  )  
+    $calculatePremiumForInjuryPotential_Output : CalculatePremiumForInjuryPotential_Output(  )  
+    $autoDiscounts_Output : AutoDiscounts_Output(  )  
+    $calculatePremiumForCarModel_Output : CalculatePremiumForCarModel_Output(  )  
+then
+	CalculateCarPremium_Output $calculateCarPremium_Output = new CalculateCarPremium_Output();
+	$calculateCarPremium_Output.setCarPremiumAfterDiscount(null);
+	$calculateCarPremium_Output.setCarPremiumFull(null);
+	insert($calculateCarPremium_Output);
+end
+
+rule "calculateAnnualPremium_rule_1"
+    no-loop true
+    //decision:  calculateAnnualPremium
+    salience 1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateAnnualPremium_Output(  )   ) 
+    $input : Input(  )  
+    $calculateDriverPremium_Output : CalculateDriverPremium_Output(  )  
+    $calculateCarPremium_Output : CalculateCarPremium_Output(  )  
+then
+	CalculateAnnualPremium_Output $calculateAnnualPremium_Output = new CalculateAnnualPremium_Output();
+	$calculateAnnualPremium_Output.setAnnualPremium(($F.plus(((BigDecimal) ($F.resolve($calculateCarPremium_Output, new String[] {"carPremiumAfterDiscount"}))), $calculateDriverPremium_Output.getCalculateDriverPremium())));
+	$calculateAnnualPremium_Output.setPremiumPerMonth($F.round(($F.multiply(($F.divide(($F.plus(((BigDecimal) ($F.resolve($calculateCarPremium_Output, new String[] {"carPremiumAfterDiscount"}))), $calculateDriverPremium_Output.getCalculateDriverPremium())), BigDecimal.valueOf(12.0))), BigDecimal.valueOf(1.1))), BigDecimal.valueOf(2.0)));
+	insert($calculateAnnualPremium_Output);
+		{
+			AnnotationItem $annotation = new AnnotationItem();
+			String $message = $F.createAnnotation(new Object[] {"10% increased premium  with monthly payment"});
+			$annotation.setDecision("calculateAnnualPremium");
+			$annotation.setRuleName("calculateAnnualPremium_rule_1");
+			$annotation.setCategory(AnnotationCategory.INFO);
+			$annotation.setMessage($message);
+			$annotation.setTimestamp(OffsetDateTime.now());
+			$allMessages.add($annotation);
+		}
+end
+
+rule "calculateAnnualPremium_emptyResultFallBack"
+    no-loop true
+    //decision:  calculateAnnualPremium
+    salience -1
+    ruleflow-group 'calculateannualpremium'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CalculateAnnualPremium_Output(  )   ) 
+    $input : Input(  )  
+    $calculateDriverPremium_Output : CalculateDriverPremium_Output(  )  
+    $calculateCarPremium_Output : CalculateCarPremium_Output(  )  
+then
+	CalculateAnnualPremium_Output $calculateAnnualPremium_Output = new CalculateAnnualPremium_Output();
+	$calculateAnnualPremium_Output.setAnnualPremium(null);
+	$calculateAnnualPremium_Output.setPremiumPerMonth(null);
+	insert($calculateAnnualPremium_Output);
+end
