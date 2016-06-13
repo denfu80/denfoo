@@ -1,0 +1,614 @@
+package null.calculatetotalpricewithvatanddiscount 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v2.DmnFormulae
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v2.DmnHierarchyFormulae
+import java.time.LocalDate
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  Purchase 
+    product : String  
+    netprice : BigDecimal  
+end
+
+declare  Purchases 
+    purchases : List  
+end
+
+declare  Input 
+    annualIncome : BigDecimal  
+    contractType : String  
+    purchases : Purchases  
+    entryDate : LocalDate  
+end
+
+declare  LoyaltyBonus_Output 
+    loyaltyBonus : BigDecimal  
+end
+
+declare  CustomerStatus_Rule_Output 
+    customerStatus : BigDecimal  
+end
+
+declare  CustomerStatus_Output 
+    customerStatus : BigDecimal  
+end
+
+declare  VAT_Output 
+    vAT : BigDecimal  
+end
+
+declare  Discount_Output 
+    discount : BigDecimal  
+end
+
+declare  PurchaseTotal_Output 
+    purchaseTotal : BigDecimal  
+    totalBeforeDiscount : BigDecimal  
+    discount : BigDecimal  
+end
+
+declare  CustomerLoyaltyInMonths_Output 
+    customerLoyaltyInMonths : BigDecimal  
+end
+
+declare  GrossPrice_Output 
+    grossPrice : BigDecimal  
+end
+
+declare  TotalPriceOfPurchaseIncludingVat_SingleInput 
+    purchase2 : Purchase  
+end
+
+declare  TotalPriceOfPurchaseIncludingVat_SingleOutput 
+    totalPriceOfPurchaseIncludingVat : BigDecimal  
+end
+
+declare  TotalPriceOfPurchaseIncludingVat_Output 
+    totalPriceOfPurchaseIncludingVat : BigDecimal  
+end
+
+declare  AnnotationItem 
+    decision : String  
+    annotationName : String  
+    ruleName : String  
+    category : AnnotationCategory  
+    message : String  
+    timestamp : OffsetDateTime  
+end
+
+declare enum AnnotationCategory
+	INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    salience 1000
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "6bd0182ea709442ba25b159c0649dfe0");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 20);
+end
+
+rule "initialize_annotations_list"
+    salience 1000
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+then
+	drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    salience 1000
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    salience 1000
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+then
+	drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    salience 999
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $input : Input(  )  
+then
+	$logger.info($input.toString());
+end
+
+rule "loyaltyBonus_rule_1"
+    no-loop true
+    //decision:  loyaltyBonus
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    LoyaltyBonus_Output(  )   ) 
+    $input : Input(  )  
+    $customerLoyaltyInMonths_Output : CustomerLoyaltyInMonths_Output(  )  
+    eval( $F.nullSafeEval(($F.greaterThanOrEqualTo($customerLoyaltyInMonths_Output.getCustomerLoyaltyInMonths(), BigDecimal.valueOf(24.0)))) ) 
+then
+	LoyaltyBonus_Output $loyaltyBonus_Output = new LoyaltyBonus_Output();
+	$loyaltyBonus_Output.setLoyaltyBonus(BigDecimal.valueOf(20.0));
+	insert($loyaltyBonus_Output);
+end
+
+rule "loyaltyBonus_rule_2"
+    no-loop true
+    //decision:  loyaltyBonus
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    LoyaltyBonus_Output(  )   ) 
+    $input : Input(  )  
+    $customerLoyaltyInMonths_Output : CustomerLoyaltyInMonths_Output(  )  
+    eval( $F.nullSafeEval(($F.lessThan($customerLoyaltyInMonths_Output.getCustomerLoyaltyInMonths(), BigDecimal.valueOf(24.0)))) ) 
+then
+	LoyaltyBonus_Output $loyaltyBonus_Output = new LoyaltyBonus_Output();
+	$loyaltyBonus_Output.setLoyaltyBonus(BigDecimal.valueOf(0.0));
+	insert($loyaltyBonus_Output);
+end
+
+rule "loyaltyBonus_emptyResultFallBack"
+    no-loop true
+    //decision:  loyaltyBonus
+    salience -1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    LoyaltyBonus_Output(  )   ) 
+    $input : Input(  )  
+    $customerLoyaltyInMonths_Output : CustomerLoyaltyInMonths_Output(  )  
+then
+	LoyaltyBonus_Output $loyaltyBonus_Output = new LoyaltyBonus_Output();
+	$loyaltyBonus_Output.setLoyaltyBonus(null);
+	insert($loyaltyBonus_Output);
+end
+
+rule "customerStatus_rule_1"
+    no-loop true
+    //decision:  customerStatus
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CustomerStatus_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getContractType(), "Business")) ) 
+then
+	CustomerStatus_Rule_Output $customerStatus_Rule_Output = new CustomerStatus_Rule_Output();
+	$customerStatus_Rule_Output.setCustomerStatus(BigDecimal.valueOf(25.0));
+	insert($customerStatus_Rule_Output);
+end
+
+rule "customerStatus_rule_2"
+    no-loop true
+    //decision:  customerStatus
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CustomerStatus_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getContractType(), "Private")) ) 
+then
+	CustomerStatus_Rule_Output $customerStatus_Rule_Output = new CustomerStatus_Rule_Output();
+	$customerStatus_Rule_Output.setCustomerStatus(BigDecimal.valueOf(15.0));
+	insert($customerStatus_Rule_Output);
+end
+
+rule "customerStatus_rule_3"
+    no-loop true
+    //decision:  customerStatus
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CustomerStatus_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval(($F.greaterThanOrEqualTo($input.getAnnualIncome(), BigDecimal.valueOf(100000.0)))) ) 
+then
+	CustomerStatus_Rule_Output $customerStatus_Rule_Output = new CustomerStatus_Rule_Output();
+	$customerStatus_Rule_Output.setCustomerStatus(BigDecimal.valueOf(20.0));
+	insert($customerStatus_Rule_Output);
+end
+
+rule "customerStatus_rule_4"
+    no-loop true
+    //decision:  customerStatus
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CustomerStatus_Output(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval(($F.lessThan($input.getAnnualIncome(), BigDecimal.valueOf(100.0)))) ) 
+then
+	CustomerStatus_Rule_Output $customerStatus_Rule_Output = new CustomerStatus_Rule_Output();
+	$customerStatus_Rule_Output.setCustomerStatus(BigDecimal.valueOf(-12.0));
+	insert($customerStatus_Rule_Output);
+end
+
+rule "customerStatus_aggregation"
+    no-loop true
+    //decision:  customerStatus
+    salience -1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CustomerStatus_Output(  )   ) 
+    $input : Input(  )  
+    $all_customerStatus : List(  ) from accumulate(     
+    CustomerStatus_Rule_Output( $each : customerStatus )  ,
+        collectList( $each ) )
+ 
+then
+	CustomerStatus_Output $customerStatus_Output = new CustomerStatus_Output();
+	$customerStatus_Output.setCustomerStatus($F.sum($all_customerStatus));
+	insert($customerStatus_Output);
+end
+
+rule "totalPriceOfPurchaseIncludingVat_entrance"
+    no-loop true
+    //decision:  totalPriceOfPurchaseIncludingVat
+    salience -1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    TotalPriceOfPurchaseIncludingVat_Output(  )   ) 
+    $input : Input(  )  
+    eval( ((List) ($F.resolve($input, new String[] {"purchases","purchases"}))) != null ) 
+    $index : Integer(  ) from $F.reversed($F.internalRange($F.count(((List) ($F.resolve($input, new String[] {"purchases","purchases"})))))) 
+then
+	TotalPriceOfPurchaseIncludingVat_SingleInput $totalPriceOfPurchaseIncludingVat_SingleInput = new TotalPriceOfPurchaseIncludingVat_SingleInput();
+	Purchase $item = new Purchase();
+		$item.setProduct(((Purchase) ((List) ($F.resolve($input, new String[] {"purchases","purchases"}))).get($index)).getProduct());
+		$item.setNetprice(((Purchase) ((List) ($F.resolve($input, new String[] {"purchases","purchases"}))).get($index)).getNetprice());
+	$totalPriceOfPurchaseIncludingVat_SingleInput.setPurchase2($item);
+	insert($totalPriceOfPurchaseIncludingVat_SingleInput);
+end
+
+rule "totalPriceOfPurchaseIncludingVat_cleanup_vAT"
+    no-loop true
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $vAT_Output : VAT_Output(  )  
+    not( 
+    TotalPriceOfPurchaseIncludingVat_SingleInput(  )   ) 
+then
+	retract($vAT_Output);
+end
+
+rule "totalPriceOfPurchaseIncludingVat_cleanup_grossPrice"
+    no-loop true
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $grossPrice_Output : GrossPrice_Output(  )  
+    not( 
+    TotalPriceOfPurchaseIncludingVat_SingleInput(  )   ) 
+then
+	retract($grossPrice_Output);
+end
+
+rule "totalPriceOfPurchaseIncludingVat_interim_result"
+    no-loop true
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    GrossPrice_Output( $grossPrice : grossPrice )  
+    $totalPriceOfPurchaseIncludingVat_SingleInput : TotalPriceOfPurchaseIncludingVat_SingleInput(  )  
+then
+	TotalPriceOfPurchaseIncludingVat_SingleOutput $totalPriceOfPurchaseIncludingVat_SingleOutput = new TotalPriceOfPurchaseIncludingVat_SingleOutput();
+	$totalPriceOfPurchaseIncludingVat_SingleOutput.setTotalPriceOfPurchaseIncludingVat($grossPrice);
+	insert($totalPriceOfPurchaseIncludingVat_SingleOutput);
+	retract($totalPriceOfPurchaseIncludingVat_SingleInput);
+end
+
+rule "totalPriceOfPurchaseIncludingVat_aggregation"
+    no-loop true
+    //decision:  totalPriceOfPurchaseIncludingVat
+    salience -2
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    $input : Input(  )  
+    $totalPriceOfPurchaseIncludingVat : List(  ) from accumulate(     
+    TotalPriceOfPurchaseIncludingVat_SingleOutput( $each : totalPriceOfPurchaseIncludingVat )  ,
+        collectList( $each ) )
+ 
+then
+	TotalPriceOfPurchaseIncludingVat_Output $totalPriceOfPurchaseIncludingVat_Output = new TotalPriceOfPurchaseIncludingVat_Output();
+	$totalPriceOfPurchaseIncludingVat_Output.setTotalPriceOfPurchaseIncludingVat($F.sum($totalPriceOfPurchaseIncludingVat));
+	insert($totalPriceOfPurchaseIncludingVat_Output);
+end
+
+rule "vAT_rule_1"
+    no-loop true
+    //decision:  vAT
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    VAT_Output(  )   ) 
+    $totalPriceOfPurchaseIncludingVat_SingleInput : TotalPriceOfPurchaseIncludingVat_SingleInput(  )  
+    eval( $F.nullSafeEval($H.anyTrue(Arrays.asList( new Object[] {$H.startsWith(((String) ($F.resolve($totalPriceOfPurchaseIncludingVat_SingleInput, new String[] {"purchase2","product"}))), "Hardware")}))) ) 
+then
+	VAT_Output $vAT_Output = new VAT_Output();
+	$vAT_Output.setVAT(BigDecimal.valueOf(0.19));
+	insert($vAT_Output);
+end
+
+rule "vAT_rule_2"
+    no-loop true
+    //decision:  vAT
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    VAT_Output(  )   ) 
+    $totalPriceOfPurchaseIncludingVat_SingleInput : TotalPriceOfPurchaseIncludingVat_SingleInput(  )  
+    eval( $F.nullSafeEval($H.anyTrue(Arrays.asList( new Object[] {$H.startsWith(((String) ($F.resolve($totalPriceOfPurchaseIncludingVat_SingleInput, new String[] {"purchase2","product"}))), "Software")}))) ) 
+then
+	VAT_Output $vAT_Output = new VAT_Output();
+	$vAT_Output.setVAT(BigDecimal.valueOf(0.0));
+	insert($vAT_Output);
+end
+
+rule "vAT_rule_3"
+    no-loop true
+    //decision:  vAT
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    VAT_Output(  )   ) 
+    $totalPriceOfPurchaseIncludingVat_SingleInput : TotalPriceOfPurchaseIncludingVat_SingleInput(  )  
+    eval( $F.nullSafeEval($H.anyTrue(Arrays.asList( new Object[] {$H.startsWith(((String) ($F.resolve($totalPriceOfPurchaseIncludingVat_SingleInput, new String[] {"purchase2","product"}))), "Literature")}))) ) 
+then
+	VAT_Output $vAT_Output = new VAT_Output();
+	$vAT_Output.setVAT(BigDecimal.valueOf(0.07));
+	insert($vAT_Output);
+end
+
+rule "vAT_emptyResultFallBack"
+    no-loop true
+    //decision:  vAT
+    salience -1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    VAT_Output(  )   ) 
+    $totalPriceOfPurchaseIncludingVat_SingleInput : TotalPriceOfPurchaseIncludingVat_SingleInput(  )  
+then
+	VAT_Output $vAT_Output = new VAT_Output();
+	$vAT_Output.setVAT(null);
+	insert($vAT_Output);
+end
+
+rule "customerLoyaltyInMonths"
+    no-loop true
+    //decision:  customerLoyaltyInMonths
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    CustomerLoyaltyInMonths_Output(  )   ) 
+    $input : Input(  )  
+then
+	CustomerLoyaltyInMonths_Output $customerLoyaltyInMonths_Output = new CustomerLoyaltyInMonths_Output();
+	$customerLoyaltyInMonths_Output.setCustomerLoyaltyInMonths($F.monthDiff($input.getEntryDate(), $F.today()));
+	insert($customerLoyaltyInMonths_Output);
+end
+
+rule "grossPrice"
+    no-loop true
+    //decision:  grossPrice
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    GrossPrice_Output(  )   ) 
+    $totalPriceOfPurchaseIncludingVat_SingleInput : TotalPriceOfPurchaseIncludingVat_SingleInput(  )  
+    $vAT_Output : VAT_Output(  )  
+then
+	GrossPrice_Output $grossPrice_Output = new GrossPrice_Output();
+	$grossPrice_Output.setGrossPrice(($F.multiply(($F.plus(BigDecimal.valueOf(1.0), $vAT_Output.getVAT())), ((BigDecimal) ($F.resolve($totalPriceOfPurchaseIncludingVat_SingleInput, new String[] {"purchase2","netprice"}))))));
+	insert($grossPrice_Output);
+end
+
+rule "discount_rule_1"
+    no-loop true
+    //decision:  discount
+    salience 3
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    $loyaltyBonus_Output : LoyaltyBonus_Output(  )  
+    $customerStatus_Output : CustomerStatus_Output(  )  
+    eval( $F.nullSafeEval(($F.greaterThan(($F.plus($customerStatus_Output.getCustomerStatus(), $loyaltyBonus_Output.getLoyaltyBonus())), BigDecimal.valueOf(40.0)))) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.2));
+	insert($discount_Output);
+end
+
+rule "discount_rule_2"
+    no-loop true
+    //decision:  discount
+    salience 2
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    $loyaltyBonus_Output : LoyaltyBonus_Output(  )  
+    $customerStatus_Output : CustomerStatus_Output(  )  
+    eval( $F.nullSafeEval(($F.greaterThanOrEqualTo(($F.plus($customerStatus_Output.getCustomerStatus(), $loyaltyBonus_Output.getLoyaltyBonus())), BigDecimal.valueOf(25.0)))) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.15));
+	insert($discount_Output);
+end
+
+rule "discount_rule_3"
+    no-loop true
+    //decision:  discount
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    $loyaltyBonus_Output : LoyaltyBonus_Output(  )  
+    $customerStatus_Output : CustomerStatus_Output(  )  
+    eval( $F.nullSafeEval(($F.lessThan(($F.plus($customerStatus_Output.getCustomerStatus(), $loyaltyBonus_Output.getLoyaltyBonus())), BigDecimal.valueOf(25.0)))) ) 
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(BigDecimal.valueOf(0.0));
+	insert($discount_Output);
+end
+
+rule "discount_emptyResultFallBack"
+    no-loop true
+    //decision:  discount
+    salience -1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Discount_Output(  )   ) 
+    $input : Input(  )  
+    $loyaltyBonus_Output : LoyaltyBonus_Output(  )  
+    $customerStatus_Output : CustomerStatus_Output(  )  
+then
+	Discount_Output $discount_Output = new Discount_Output();
+	$discount_Output.setDiscount(null);
+	insert($discount_Output);
+end
+
+rule "purchaseTotal_rule_1"
+    no-loop true
+    //decision:  purchaseTotal
+    salience 1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PurchaseTotal_Output(  )   ) 
+    $input : Input(  )  
+    $totalPriceOfPurchaseIncludingVat_Output : TotalPriceOfPurchaseIncludingVat_Output(  )  
+    $discount_Output : Discount_Output(  )  
+then
+	PurchaseTotal_Output $purchaseTotal_Output = new PurchaseTotal_Output();
+	$purchaseTotal_Output.setPurchaseTotal(($F.multiply(($F.minus(BigDecimal.valueOf(1.0), $discount_Output.getDiscount())), $totalPriceOfPurchaseIncludingVat_Output.getTotalPriceOfPurchaseIncludingVat())));
+	$purchaseTotal_Output.setTotalBeforeDiscount($totalPriceOfPurchaseIncludingVat_Output.getTotalPriceOfPurchaseIncludingVat());
+	$purchaseTotal_Output.setDiscount($discount_Output.getDiscount());
+	insert($purchaseTotal_Output);
+		{
+			AnnotationItem $annotation = new AnnotationItem();
+			String $message = $F.createAnnotation(new Object[] {"The total of all purchases including VAT is ",$totalPriceOfPurchaseIncludingVat_Output.getTotalPriceOfPurchaseIncludingVat()," and the customer discount is ",$discount_Output.getDiscount()," "});
+			$annotation.setDecision("purchaseTotal");
+			$annotation.setRuleName("purchaseTotal_rule_1");
+			$annotation.setCategory(AnnotationCategory.INFO);
+			$annotation.setMessage($message);
+			$annotation.setTimestamp(OffsetDateTime.now());
+			$allMessages.add($annotation);
+		}
+end
+
+rule "purchaseTotal_emptyResultFallBack"
+    no-loop true
+    //decision:  purchaseTotal
+    salience -1
+    ruleflow-group 'calculatetotalpricewithvatanddiscount'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    PurchaseTotal_Output(  )   ) 
+    $input : Input(  )  
+    $totalPriceOfPurchaseIncludingVat_Output : TotalPriceOfPurchaseIncludingVat_Output(  )  
+    $discount_Output : Discount_Output(  )  
+then
+	PurchaseTotal_Output $purchaseTotal_Output = new PurchaseTotal_Output();
+	$purchaseTotal_Output.setPurchaseTotal(null);
+	$purchaseTotal_Output.setDiscount(null);
+	$purchaseTotal_Output.setTotalBeforeDiscount(null);
+	insert($purchaseTotal_Output);
+end
