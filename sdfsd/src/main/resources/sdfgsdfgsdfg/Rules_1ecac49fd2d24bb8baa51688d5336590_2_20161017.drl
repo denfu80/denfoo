@@ -1,0 +1,179 @@
+package null.neuesentscheidungsdiagramm 
+
+import java.time.OffsetTime
+import java.util.Arrays
+import org.slf4j.Logger
+import java.text.DecimalFormat
+import org.slf4j.LoggerFactory
+import com.signavio.dmn.formulae.v3.IndexedListElement
+import java.util.ArrayList
+import java.util.HashSet
+import java.math.BigDecimal
+import java.util.List
+import java.time.OffsetDateTime
+import com.signavio.dmn.formulae.v3.DmnHierarchyFormulae
+import java.time.LocalDate
+import com.signavio.dmn.formulae.v3.DmnFormulae
+import java.util.Collections
+import java.math.RoundingMode
+
+global String modelId
+global Integer revisionNumber
+global List $allMessages
+global Logger $logger
+
+declare  DmnFormulae 
+end
+
+declare  DmnFormulaeLocal  extends  DmnFormulae  
+end
+
+declare  DmnHierarchyFormulae 
+end
+
+declare  IndexedListElement 
+end
+
+declare  Input 
+    aa : String  
+end
+
+declare  Aaaa  extends  IndexedListElement  
+    aaaa : String  
+end
+
+declare  Aaaa_Output 
+    aaaa : String  
+end
+
+declare  AnnotationItem 
+    decision : String  
+    annotationName : String  
+    ruleName : String  
+    category : AnnotationCategory  
+    message : String  
+    timestamp : OffsetDateTime  
+end
+
+declare enum AnnotationCategory
+	INFO,CRITICAL,REGULATION,POLICY;
+end
+
+rule "initialize_version_info"
+    no-loop true
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	drools.getWorkingMemory().setGlobal("modelId", "1ecac49fd2d24bb8baa51688d5336590");
+	drools.getWorkingMemory().setGlobal("revisionNumber", 2);
+end
+
+rule "initialize_annotations_list"
+    no-loop true
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	drools.getWorkingMemory().setGlobal("$allMessages", new ArrayList());
+end
+
+rule "add_formulae_to_memory"
+    no-loop true
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	insert(new DmnFormulaeLocal());
+	insert(new DmnHierarchyFormulae());
+end
+
+rule "init_logger"
+    no-loop true
+    salience 1000
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+then
+	drools.getWorkingMemory().setGlobal("$logger", LoggerFactory.getLogger("DroolsExecution"));
+end
+
+rule "log_input_rule"
+    no-loop true
+    salience 999
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $input : Input(  )  
+then
+	$logger.info($input.toString());
+end
+
+rule "aaaa_rule_1"
+    no-loop true
+    //decision:  aaaa
+    salience 1
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Aaaa_Output(  )   ) 
+    not( 
+    Aaaa(  )   ) 
+    $input : Input(  )  
+    eval( $F.nullSafeEval($F.equals($input.getAa(), "3")) ) 
+then
+	Aaaa $aaaa = new Aaaa();
+	$aaaa.setAaaa("s");
+	$aaaa.setIndex(0);
+	insert($aaaa);
+end
+
+rule "aaaa_singleResultOutput"
+    no-loop true
+    //decision:  aaaa
+    salience 0
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Aaaa_Output(  )   ) 
+    $input : Input(  )  
+    $aaaa : Aaaa(  )  
+then
+	Aaaa_Output $aaaa_Output = new Aaaa_Output();
+	$aaaa_Output.setAaaa($aaaa.getAaaa());
+	retract($aaaa);
+	insert($aaaa_Output);
+end
+
+rule "aaaa_emptyResultFallBack"
+    no-loop true
+    //decision:  aaaa
+    salience -1
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    not( 
+    Aaaa_Output(  )   ) 
+    $input : Input(  )  
+then
+	Aaaa_Output $aaaa_Output = new Aaaa_Output();
+	$aaaa_Output.setAaaa(null);
+	insert($aaaa_Output);
+end
+
+rule "aaaa_cleanup_rule_output"
+    no-loop true
+    //decision:  aaaa
+    salience 1
+    ruleflow-group 'neuesentscheidungsdiagramm'
+when
+    $F : DmnFormulaeLocal(  )  
+    $H : DmnHierarchyFormulae(  )  
+    Aaaa_Output(  )  
+    $aaaa : Aaaa(  )  
+then
+	retract($aaaa);
+end
